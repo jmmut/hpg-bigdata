@@ -25,6 +25,7 @@ import org.opencb.hpg.bigdata.app.cli.FastqCommandExecutor;
 import org.opencb.hpg.bigdata.app.cli.Ga4ghCommandExecutor;
 
 import com.beust.jcommander.ParameterException;
+import org.opencb.hpg.bigdata.core.spark.LinearRegression;
 import org.opencb.hpg.bigdata.core.spark.Wordcount;
 
 /**
@@ -34,16 +35,9 @@ public class BigDataMain {
     protected static Logger logger = Logger.getLogger(BigDataMain.class);
 
     public static void main(String[] args) {
-        Wordcount wordcount = new Wordcount();
-        
-        if (args.length == 2) {
-            wordcount.sparkAvro(args[0], args[1]);
-        } else {
-            System.out.println("wrong args, I need 2: file path, pattern to match");
-            for (String arg : args) {
-                System.out.println("arg = " + arg);
-            }
-        }
+
+        LinearRegression linearRegression = new LinearRegression();
+        linearRegression.main(args);
     }
     
     public static void main2(String[] args) {

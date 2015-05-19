@@ -14,7 +14,7 @@ public class Wordcount {
 
     protected Logger logger = Logger.getLogger(this.getClass());
     
-    public void sparkAvro(String file, String contains) {
+    public void sparkCountFileLines(String file, String contains) {
         SparkConf sparkConf = new SparkConf().setAppName("JavaWordCount").setMaster("local[3]");    // 3 threads
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 

@@ -26,7 +26,10 @@ import org.opencb.hpg.bigdata.app.cli.Ga4ghCommandExecutor;
 
 import com.beust.jcommander.ParameterException;
 import org.opencb.hpg.bigdata.core.spark.LinearRegression;
+import org.opencb.hpg.bigdata.core.spark.SparkHbase;
 import org.opencb.hpg.bigdata.core.spark.Wordcount;
+
+import java.io.IOException;
 
 /**
  * Created by imedina on 15/03/15.
@@ -34,10 +37,9 @@ import org.opencb.hpg.bigdata.core.spark.Wordcount;
 public class BigDataMain {
     protected static Logger logger = Logger.getLogger(BigDataMain.class);
 
-    public static void main(String[] args) {
-
-        LinearRegression linearRegression = new LinearRegression();
-        linearRegression.main(args);
+    public static void main(String[] args) throws IOException {
+        SparkHbase sparkHbase = new SparkHbase();
+        sparkHbase.countRows(args);
     }
     
     public static void main2(String[] args) {

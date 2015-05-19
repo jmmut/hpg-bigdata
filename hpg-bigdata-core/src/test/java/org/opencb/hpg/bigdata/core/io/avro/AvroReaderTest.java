@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NavigableMap;
 import java.util.function.Supplier;
 
 /**
@@ -124,6 +125,31 @@ public class AvroReaderTest {
         logger.info("made mock insert");
         
         table.close();
+    }
+    
+    @Test
+    public void mockRead() throws IOException {
+        Configuration conf = HBaseConfiguration.create();
+        Connection connection = ConnectionFactory.createConnection(conf);
+        Admin admin = connection.getAdmin();
+        TableName tableName = TableName.valueOf("test");
+        Table table = connection.getTable(tableName);
+
+        Result result = table.get(new Get(Bytes.toBytes("row2")));
+        System.out.println("result " + result.toString());
+        System.out.println("result.listCells() = " + result.listCells());
+        System.out.println("result.listCells().get(0) = " + result.listCells().get(0).toString());
+        System.out.println("result.listCells().get(0).getValueArray() = " + new String(result.listCells().get(0).getValueArray()));
+        NavigableMap<byte[], NavigableMap<byte[], NavigableMap<Long, byte[]>>> families = result.getMap();
+        for (NavigableMap<byte[], NavigableMap<Long, byte[]>> family : families.values()) {
+            for (NavigableMap<Long, byte[]> column : family.values()) {
+                for (byte[] value : column.values()) {
+                    System.out.println("bytes = " + new String(value));
+                }
+            }
+        }
+        table.close();
+
     }
 
     private static void readVariants(InputStream inputStream) throws IOException {

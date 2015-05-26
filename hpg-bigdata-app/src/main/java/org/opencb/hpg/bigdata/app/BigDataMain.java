@@ -39,7 +39,7 @@ public class BigDataMain {
 
     public static void main(String[] args) throws IOException {
         SparkHbase sparkHbase = new SparkHbase();
-        sparkHbase.countRows(args);
+        sparkHbase.mockWrite();
     }
     
     public static void main2(String[] args) {

@@ -1,10 +1,12 @@
 package org.opencb.hpg.bigdata.core.spark;
 
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.log4j.Logger;
@@ -14,6 +16,8 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
+import org.apache.spark.rdd.PairRDDFunctions;
 import scala.Tuple2;
 
 import java.io.IOException;
@@ -46,5 +50,25 @@ public class SparkHbase {
         JavaRDD<Integer> map = rdd.map(v1 -> 1);
         Integer reduce = map.reduce((v1, v2) -> v1 + v2);
         System.out.println("table " + tableName + " has " + reduce + " rows");
+    }
+
+    public void mockWrite() {
+        Configuration conf = HBaseConfiguration.create();
+        String tableName = "putexample";
+
+        SparkConf sparkConf = new SparkConf().setAppName("JavaWordCount").setMaster("local[3]");    // 3 threads
+        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+//        conf.set
+        conf.set(TableOutputFormat.OUTPUT_TABLE, tableName);
+        conf.set("mapreduce.output.fileoutputformat.outputdir", "/tmp/sparkhbaseoutputdir");
+
+        String file = "/tmp/key-value.txt";
+        JavaRDD<String> lines = ctx.textFile(file);
+        JavaPairRDD<String, String> keyValue = lines.mapToPair(line -> {
+            String[] split = line.split(" ");
+            return new Tuple2<>(split[0], split[1]);
+        });
+        
+        keyValue.saveAsNewAPIHadoopDataset(conf);
     }
 }

@@ -39,7 +39,9 @@ public class BigDataMain {
 
     public static void main(String[] args) throws Exception {
         SparkHbase sparkHbase = new SparkHbase();
-        sparkHbase.mockInsert();
+        sparkHbase.avroToSparkToHbase();
+//        sparkHbase.mockHbaseWrite();
+    
     }
     
     public static void main2(String[] args) {

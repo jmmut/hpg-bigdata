@@ -2,6 +2,7 @@ package org.opencb.hpg.bigdata.core.spark;
 
 
 import org.apache.avro.mapred.AvroKey;
+import org.apache.avro.mapreduce.AvroJob;
 import org.apache.avro.mapreduce.AvroKeyInputFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -104,7 +105,7 @@ public class SparkHbase {
 
     public void avroToSparkToHbase() throws Exception {
 
-        String tableName = "testVariants2";
+        String tableName = "tv3";
         InputStream inputStream;
         String input = "/home/jmmut/appl/hpg-bigdata/resources/small.vcf.avro.snz";
         try {
@@ -128,42 +129,42 @@ public class SparkHbase {
                 AvroKey.class,
                 NullWritable.class);
 
-        Integer reduce = avroRdd.map((tuple) -> {
-            Object datum = tuple._1.datum();
-            if (datum instanceof Variant) {
-                logger.info("doing insert, datum was a Variant");
-                Variant variant = (Variant) datum;
-                logger.info("variant.getStart() : " + variant.getStart());
-//                Configuration localConf = HBaseConfiguration.create();
-//                localConf.set(TableOutputFormat.OUTPUT_TABLE, tableName);
-                Connection connection = ConnectionFactory.createConnection();
-//                Connection connection = ConnectionFactory.createConnection(localConf);
-                TableName hTableName = TableName.valueOf(tableName);
-                Table table = connection.getTable(hTableName);
-                Put put;
-                byte[] row = Bytes.toBytes(String.format("%s_%08d_%s_%s",
-                        variant.getReferenceName(),
-                        variant.getStart(),
-                        variant.getReferenceBases(),
-                        variant.getAlternateBases().isEmpty() ? "" : variant.getAlternateBases().get(0)));
-                put = new Put(row);
-                try {
-                    variant.setCalls(new ArrayList<>());
-                    String toJson = variant.toString();
-                    put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("c"), Bytes.toBytes(toJson));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                table.put(put);
-                table.close();
-                return 1;
-            } else {
-                logger.info("datum was NOT a Variant");
-                return 10000;
-            }
-        }).reduce(Integer::sum);
+        avroRdd.foreachPartition(iter -> {
+//        Integer reduce = avroRdd.map((tuple) -> {
+            logger.info("foreach partition ---------------------------------");
 
-        logger.error("total variants processed: " + reduce);
+            Connection connection = ConnectionFactory.createConnection();
+            TableName hTableName = TableName.valueOf(tableName);
+            Table table = connection.getTable(hTableName);
+            iter.forEachRemaining((tuple) -> {
+                Object datum = tuple._1.datum();
+                if (datum instanceof Variant) {
+                    logger.info("doing insert, datum was a Variant");
+                    Variant variant = (Variant) datum;
+                    logger.info("variant.getStart() : " + variant.getStart());
+                    Put put;
+                    byte[] row = Bytes.toBytes(String.format("%s_%08d_%s_%s",
+                            variant.getReferenceName(),
+                            variant.getStart(),
+                            variant.getReferenceBases(),
+                            variant.getAlternateBases().isEmpty() ? "" : variant.getAlternateBases().get(0)));
+                    put = new Put(row);
+                    try {
+                        variant.setCalls(new ArrayList<>());
+                        String toJson = variant.toString();
+                        put.addColumn(Bytes.toBytes("cf"), Bytes.toBytes("c"), Bytes.toBytes(toJson));
+                        table.put(put);
+                        table.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    logger.info("datum was NOT a Variant");
+                }
+            });
+        });
+
+//        logger.error("total variants processed: " + reduce);
     }
 
     public void sparkHadoopFileWrite() {

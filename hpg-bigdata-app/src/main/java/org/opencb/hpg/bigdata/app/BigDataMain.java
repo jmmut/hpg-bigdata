@@ -37,9 +37,9 @@ import java.io.IOException;
 public class BigDataMain {
     protected static Logger logger = Logger.getLogger(BigDataMain.class);
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         SparkHbase sparkHbase = new SparkHbase();
-        sparkHbase.mockWrite();
+        sparkHbase.mockInsert();
     }
     
     public static void main2(String[] args) {

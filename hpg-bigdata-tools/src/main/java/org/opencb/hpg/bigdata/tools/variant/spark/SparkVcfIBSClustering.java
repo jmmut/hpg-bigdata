@@ -6,6 +6,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.opencb.biodata.models.variant.Variant;
 import org.opencb.biodata.models.variant.VariantSource;
 import org.opencb.biodata.models.variant.VariantVcfFactory;
+import org.opencb.biodata.models.variant.avro.VariantAvro;
 import org.opencb.biodata.models.variant.exceptions.NotAVariantException;
 
 import java.util.List;
@@ -37,6 +38,7 @@ public class SparkVcfIBSClustering {
      */
     public void calculate(String filename) {
         SparkConf sparkConf = new SparkConf().setAppName("JavaRowCount").setMaster("local[3]");    // 3 threads
+        sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
         JavaRDD<String> file = ctx.textFile(filename);

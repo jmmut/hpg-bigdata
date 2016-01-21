@@ -30,24 +30,25 @@ public class SparkIBSClustering {
 //            List<String> samplesNames = variants.takeSample(true, 1).get(0).getStudies().get(0).getOrderedSamplesName();
 //            int numSamples = samplesNames.size();
             IdentityByStateClustering ibsc = new IdentityByStateClustering();
-            int studyIndex = 0;
+//            System.out.println("before loops");
             ibsc.forEachPair(numSamples, (i, j, compound) -> {
 //                variants.mapPartitions(variant -> {   // maybe?
+//                System.out.println("starting pair" + i + ", " + j);
                 Map<Integer, Long> ibs = variants.map(variant -> {
 
 //                    variants.foreachPartition(variantIterator -> {    // Not likely to work
 //                    variantIterator.forEachRemaining(variant -> {// Not likely to work
-                    StudyEntry studyEntry = variant.getStudies().get(studyIndex);
+                    StudyEntry studyEntry = variant.getStudies().get(0);
                     Map<String, Integer> formatPositions = studyEntry.getFormatPositions();
-                    String gtI = samplesData.get(i).get(formatPositions.get("GT"));
-                    String gtJ = samplesData.get(i).get(formatPositions.get("GT"));
+                    String gtI = variant.getStudies().get(0).getSamplesData().get(i).get(formatPositions.get("GT"));
+                    String gtJ = variant.getStudies().get(0).getSamplesData().get(i).get(formatPositions.get("GT"));
                     Genotype genotypeI = new Genotype(gtI);
                     Genotype genotypeJ = new Genotype(gtJ);
 
                     return ibsc.countSharedAlleles(genotypeI.getAllelesIdx().length, genotypeI, genotypeJ);
                 }).countByValue();
                 // here, pair i_j has ibs[] = [x, y, z]
-                System.out.println("pair [" + i + ", " + j + "] has ibs " + ibs.toString());
+//                System.out.println("pair [" + i + ", " + j + "] has ibs " + ibs.toString());
             });
         }
     }

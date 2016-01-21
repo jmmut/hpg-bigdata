@@ -56,7 +56,6 @@ public class SparkHBaseIBSClustering {
 //        rdd.cogroup()
 
         JavaRDD<Variant> variants = rdd.map(v1 -> converter.convert(v1._2));
-        long count = variants.count();
-        System.out.println("table " + tableName + " has " + count + " rows");
+        new SparkIBSClustering().calculate(variants);
     }
 }

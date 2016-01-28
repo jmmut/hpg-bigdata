@@ -37,9 +37,10 @@ public class SparkVcfIBSClustering {
     /**
      * TODO jmmut: think about adding a sample set.
      * @param filename vcf.
+     * @return JavaRDD of variants
      * @throws IOException using outputstreams
      */
-    public void calculate(String filename) throws IOException {
+    public JavaRDD<Variant> getRDD(String filename) throws IOException {
         SparkConf sparkConf = new SparkConf().setAppName("JavaRowCount").setMaster("local[3]");    // 3 threads
         sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
@@ -66,6 +67,6 @@ public class SparkVcfIBSClustering {
                     return parsed;
                 });
 
-        new SparkIBSClustering().calculate(variants);
+        return variants;
     }
 }

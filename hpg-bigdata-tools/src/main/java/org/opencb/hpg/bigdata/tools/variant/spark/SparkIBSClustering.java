@@ -7,11 +7,11 @@ import org.opencb.biodata.models.variant.Variant;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.lang.Math.toIntExact;
 
@@ -22,13 +22,16 @@ import static java.lang.Math.toIntExact;
  */
 public class SparkIBSClustering {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SparkIBSClustering.class);
+
     /**
      * generic spark algorithm.
      * autonote: perhaps rdd.cogroup or rdd.cartesian are useful
      * @param variants rdd of variants. May be got from files or from hbase.
+     * @param pairWriter output each pair here
      * @throws IOException using outputstreams
      */
-    public void calculate(JavaRDD<Variant> variants) throws IOException {
+    public void calculate(JavaRDD<Variant> variants, PairWriter pairWriter) throws IOException {
 //        long count = variants.count();
 //        System.out.println("there are " + count + " rows");
 
@@ -54,11 +57,8 @@ public class SparkIBSClustering {
                     Genotype genotypeJ = new Genotype(gtJ);
 
                     // instantiating a new IBSC in order to not serialize the outer one
-                    int countSharedAlleles = new IdentityByStateClustering()
+                    return new IdentityByStateClustering()
                             .countSharedAlleles(genotypeI.getAllelesIdx().length, genotypeI, genotypeJ);
-                    System.out.println("countSharedAlleles = " + countSharedAlleles + "; genotypes: {"
-                            + genotypeI.toString() + ", " + genotypeJ.toString() + "}");
-                    return countSharedAlleles;
                 }).countByValue();
                 // here, pair i_j has ibs[] = [x, y, z]
 
@@ -66,18 +66,27 @@ public class SparkIBSClustering {
                 IdentityByState ibs = new IdentityByState();
                 ibsMap.entrySet().stream().forEach(entry -> ibs.ibs[entry.getKey()] = toIntExact(entry.getValue()));
 
-                System.out.println("ibsMap = " + ibsMap.toString());
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                OutputStreamWriter osw = new OutputStreamWriter(baos);
-                for (int k = 0; k < 3; k++) {
-                    System.out.println("ibs.ibs[" + k + "] = " + ibs.ibs[k]);
-                }
-                new IdentityByStateClustering().writePair(osw, String.valueOf(i), String.valueOf(j), ibs);
-                osw.close();
-                System.out.println("osw.toString() = " + osw.toString());
-                String line = new String(baos.toByteArray());
-                System.out.println("pair [" + i + ", " + j + "] has ibs " + line);
+                pairWriter.writePair(String.valueOf(i), String.valueOf(j), ibs);
             });
+        }
+    }
+
+    public static void main(String[] args) {
+
+        LOGGER.info("info log: IBS test");
+        if (args.length != 1) {
+            System.out.println("only 1 argument needed: filename");
+            return;
+        }
+
+        try {
+            // TODO: choose SparkIBSClustering implementation by reflection
+            JavaRDD<Variant> variants = new SparkVcfIBSClustering().getRDD(args[0]);
+
+            new SparkIBSClustering().calculate(variants, new SystemOutPairWriter());
+
+        } catch (IOException e) {
+            LOGGER.error("IBS failed: ", e);
         }
     }
 }

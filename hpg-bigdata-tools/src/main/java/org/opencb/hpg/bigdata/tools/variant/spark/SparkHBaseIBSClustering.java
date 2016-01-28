@@ -59,6 +59,6 @@ public class SparkHBaseIBSClustering {
 //        rdd.cogroup()
 
         JavaRDD<Variant> variants = rdd.map(v1 -> converter.convert(v1._2));
-        new SparkIBSClustering().calculate(variants);
+        new SparkIBSClustering().calculate(variants, new SystemOutPairWriter());
     }
 }

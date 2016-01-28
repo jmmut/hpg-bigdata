@@ -22,9 +22,7 @@ import org.opencb.hpg.bigdata.app.cli.hadoop.AlignmentCommandExecutor;
 import org.opencb.hpg.bigdata.app.cli.hadoop.CliOptionsParser;
 import org.opencb.hpg.bigdata.app.cli.hadoop.SequenceCommandExecutor;
 import org.opencb.hpg.bigdata.app.cli.hadoop.VariantCommandExecutor;
-import org.opencb.hpg.bigdata.tools.variant.spark.SparkVcfIBSClustering;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -34,17 +32,8 @@ import java.util.Properties;
  */
 public class BigDataMain {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BigDataMain.class);
     public static void main(String[] args) {
-        System.out.println("IBS test");
-        LOGGER.info("info log: IBS test");
-        LOGGER.error("error log: IBS test");
-        if (args.length != 1) {
-            System.out.println("only 1 argument needed: filename");
-            return;
-        }
-
-        new SparkVcfIBSClustering().calculate(args[0]);
+        SparkIBSClustering.main(args);
     }
 
     public static void main2(String[] args) {

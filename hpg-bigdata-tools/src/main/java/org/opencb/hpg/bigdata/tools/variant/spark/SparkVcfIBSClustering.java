@@ -9,7 +9,9 @@ import org.opencb.biodata.models.variant.VariantVcfFactory;
 import org.opencb.biodata.models.variant.avro.VariantAvro;
 import org.opencb.biodata.models.variant.exceptions.NotAVariantException;
 
+import java.io.IOException;
 import java.util.List;
+
 
 /**
  * Created by jmmut on 2015-12-17.
@@ -34,9 +36,10 @@ public class SparkVcfIBSClustering {
 
     /**
      * TODO jmmut: think about adding a sample set.
-     * @param filename vcf
+     * @param filename vcf.
+     * @throws IOException using outputstreams
      */
-    public void calculate(String filename) {
+    public void calculate(String filename) throws IOException {
         SparkConf sparkConf = new SparkConf().setAppName("JavaRowCount").setMaster("local[3]");    // 3 threads
         sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);

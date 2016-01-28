@@ -13,6 +13,8 @@ import org.opencb.biodata.models.variant.Variant;
 import org.opencb.biodata.tools.variant.converter.Converter;
 import org.opencb.hpg.bigdata.core.connectors.Connector;
 
+import java.io.IOException;
+
 /**
  * Created by jmmut on 2015-12-17.
  *
@@ -38,8 +40,9 @@ public class SparkHBaseIBSClustering {
      * TODO jmmut: think about adding a sample set.
      * @param tableName source table
      * @param converter convert type from DB native to workable-with model
+     * @throws IOException for writing result
      */
-    public void calculate(String tableName, Converter<Result, Variant> converter) {
+    public void calculate(String tableName, Converter<Result, Variant> converter) throws IOException {
 
         SparkConf sparkConf = new SparkConf().setAppName("JavaRowCount").setMaster("local[3]");    // 3 threads
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);

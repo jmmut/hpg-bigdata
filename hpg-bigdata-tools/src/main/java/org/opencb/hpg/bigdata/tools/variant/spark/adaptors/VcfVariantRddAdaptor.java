@@ -1,4 +1,20 @@
-package org.opencb.hpg.bigdata.tools.variant.spark;
+/*
+ * Copyright 2016 OpenCB
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.opencb.hpg.bigdata.tools.variant.spark.adaptors;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
@@ -16,36 +32,31 @@ import java.util.List;
 /**
  * Created by jmmut on 2015-12-17.
  *
- * Considerations:
- * * not sure if hardcode to read from hbase, i.e. SparkIBSClustering or SparkHBaseIBSClustering
- *      To make it generic, the easiest way might be to ask directly for a JavaRDD.
- *
- *
- * Algorithm:
- *
- *  foreach partition in hbase
- *      create batch of variants
- *      foreach pair of individuals in batch
- *      accumulate accross all variants the counts
- *      compute distance
- *      store it in hbase
- *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public class SparkVcfIBSClustering {
+public class VcfVariantRddAdaptor implements VariantRddAdaptor {
+
+    private String filename;
+
+    /**
+     * @param filename vcf
+     */
+    public VcfVariantRddAdaptor(String filename) {
+        this.filename = filename;
+    }
 
     /**
      * TODO jmmut: think about adding a sample set.
-     * @param filename vcf.
      * @return JavaRDD of variants
      * @throws IOException using outputstreams
      */
-    public JavaRDD<Variant> getRDD(String filename) throws IOException {
+    @Override
+    public JavaRDD<Variant> getRdd() throws IOException {
         SparkConf sparkConf = new SparkConf().setAppName("JavaRowCount").setMaster("local[3]");    // 3 threads
         sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
-        JavaRDD<String> file = ctx.textFile(filename);
+        JavaRDD<String> file = ctx.textFile(this.filename);
 //        VariantVcfReader reader = new VariantVcfReader(variantSource, )
         JavaRDD<Variant> variants = file
                 .filter(line -> !line.startsWith("#") && !line.trim().isEmpty())

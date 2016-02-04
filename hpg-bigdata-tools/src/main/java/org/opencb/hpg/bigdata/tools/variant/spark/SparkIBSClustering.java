@@ -1,3 +1,19 @@
+/*
+ * Copyright 2016 OpenCB
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.opencb.hpg.bigdata.tools.variant.spark;
 
 import org.apache.spark.api.java.JavaRDD;
@@ -10,6 +26,10 @@ import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
+import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VcfVariantRddAdaptor;
+import org.opencb.hpg.bigdata.tools.variant.spark.writers.IbsPairWriter;
+import org.opencb.hpg.bigdata.tools.variant.spark.writers.SystemOutIbsPairWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +37,15 @@ import static java.lang.Math.toIntExact;
 
 /**
  * Created by jmmut on 2016-01-14.
+ *
+ * Algorithm:
+ *
+ *  foreach partition in hbase
+ *      create batch of variants
+ *      foreach pair of individuals in batch
+ *      accumulate accross all variants the counts
+ *      compute distance
+ *      store it in hbase
  *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
@@ -28,10 +57,10 @@ public class SparkIBSClustering {
      * generic spark algorithm.
      * autonote: perhaps rdd.cogroup or rdd.cartesian are useful
      * @param variants rdd of variants. May be got from files or from hbase.
-     * @param pairWriter output each pair here
+     * @param ibsPairWriter output each pair here
      * @throws IOException using outputstreams
      */
-    public void calculate(JavaRDD<Variant> variants, PairWriter pairWriter) throws IOException {
+    public void calculate(JavaRDD<Variant> variants, IbsPairWriter ibsPairWriter) throws IOException {
 //        long count = variants.count();
 //        System.out.println("there are " + count + " rows");
 
@@ -66,7 +95,7 @@ public class SparkIBSClustering {
                 IdentityByState ibs = new IdentityByState();
                 ibsMap.entrySet().stream().forEach(entry -> ibs.ibs[entry.getKey()] = toIntExact(entry.getValue()));
 
-                pairWriter.writePair(String.valueOf(i), String.valueOf(j), ibs);
+                ibsPairWriter.writePair(String.valueOf(i), String.valueOf(j), ibs);
             });
         }
     }
@@ -81,9 +110,10 @@ public class SparkIBSClustering {
 
         try {
             // TODO: choose SparkIBSClustering implementation by reflection
-            JavaRDD<Variant> variants = new SparkVcfIBSClustering().getRDD(args[0]);
+            JavaRDD<Variant> variants = new VcfVariantRddAdaptor(args[0]).getRdd();
 
-            new SparkIBSClustering().calculate(variants, new SystemOutPairWriter());
+//            new SparkIBSClustering().calculate(variants, new HBasePairWriter());
+            new SparkIBSClustering().calculate(variants, new SystemOutIbsPairWriter());
 
         } catch (IOException e) {
             LOGGER.error("IBS failed: ", e);

@@ -1,4 +1,20 @@
-package org.opencb.hpg.bigdata.tools.variant.spark;
+/*
+ * Copyright 2016 OpenCB
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.opencb.hpg.bigdata.tools.variant.spark.adaptors;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -18,23 +34,12 @@ import java.io.IOException;
 /**
  * Created by jmmut on 2015-12-17.
  *
- * Considerations:
- * * not sure if hardcode to read from hbase, i.e. SparkIBSClustering or SparkHBaseIBSClustering
- *      To make it generic, the easiest way might be to ask directly for a JavaRDD.
- *
- *
- * Algorithm:
- *
- *  foreach partition in hbase
- *      create batch of variants
- *      foreach pair of individuals in batch
- *      accumulate accross all variants the counts
- *      compute distance
- *      store it in hbase
- *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public class SparkHBaseIBSClustering {
+public class HBaseVariantRddAdaptor implements VariantRddAdaptor {
+
+    private String tableName;
+    private Converter<Result, Variant> converter;
 
     /**
      * TODO jmmut: think about adding a sample set.
@@ -42,7 +47,13 @@ public class SparkHBaseIBSClustering {
      * @param converter convert type from DB native to workable-with model
      * @throws IOException for writing result
      */
-    public void calculate(String tableName, Converter<Result, Variant> converter) throws IOException {
+    public HBaseVariantRddAdaptor(String tableName, Converter<Result, Variant> converter) throws IOException {
+        this.tableName = tableName;
+        this.converter = converter;
+    }
+
+    @Override
+    public JavaRDD<Variant> getRdd() throws IOException {
 
         SparkConf sparkConf = new SparkConf().setAppName("JavaRowCount").setMaster("local[3]");    // 3 threads
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
@@ -58,7 +69,7 @@ public class SparkHBaseIBSClustering {
         // where is the code of this??
 //        rdd.cogroup()
 
-        JavaRDD<Variant> variants = rdd.map(v1 -> converter.convert(v1._2));
-        new SparkIBSClustering().calculate(variants, new SystemOutPairWriter());
+        return rdd.map(v1 -> converter.convert(v1._2));
+//        new SparkIBSClustering().calculate(variants, new HBasePairWriter(ctx));
     }
 }

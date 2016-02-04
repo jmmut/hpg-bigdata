@@ -69,6 +69,7 @@ public class CliOptionsParser {
         JCommander variantSubCommands = jcommander.getCommands().get("variant");
         variantSubCommands.addCommand("convert", variantCommandOptions.convertVariantCommandOptions);
         variantSubCommands.addCommand("index", variantCommandOptions.indexVariantCommandOptions);
+        variantSubCommands.addCommand("ibs", variantCommandOptions.ibsVariantCommandOptions);
 
 //        convertCommandOptions = new ConvertCommandOptions();
     }
@@ -343,10 +344,12 @@ public class CliOptionsParser {
 
         ConvertVariantCommandOptions convertVariantCommandOptions;
         IndexVariantCommandOptions indexVariantCommandOptions;
+        IbsVariantCommandOptions ibsVariantCommandOptions;
 
         public VariantCommandOptions() {
             this.convertVariantCommandOptions = new ConvertVariantCommandOptions();
             this.indexVariantCommandOptions = new IndexVariantCommandOptions();
+            this.ibsVariantCommandOptions = new IbsVariantCommandOptions();
         }
     }
 
@@ -413,6 +416,17 @@ public class CliOptionsParser {
         @Parameter(names = {"--credentials"}, description = "Database credentials: user, password, host, port", arity = 1)
         public String credentials;
 
+    }
+
+    @Parameters(commandNames = {"ibs"},
+            commandDescription = "Run Identity-By-State analysis")
+    public class IbsVariantCommandOptions {
+
+        @ParametersDelegate
+        public CommonCommandOptions commonOptions = commonCommandOptions;
+
+        @Parameter(names = {"-i", "--input"}, description = "input vcf", required = true, arity = 1)
+        public String input = null;
     }
 
 

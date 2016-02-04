@@ -22,7 +22,6 @@ import org.opencb.hpg.bigdata.app.cli.hadoop.AlignmentCommandExecutor;
 import org.opencb.hpg.bigdata.app.cli.hadoop.CliOptionsParser;
 import org.opencb.hpg.bigdata.app.cli.hadoop.SequenceCommandExecutor;
 import org.opencb.hpg.bigdata.app.cli.hadoop.VariantCommandExecutor;
-import org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -33,10 +32,6 @@ import java.util.Properties;
 public class BigDataMain {
 
     public static void main(String[] args) {
-        SparkIBSClustering.main(args);
-    }
-
-    public static void main2(String[] args) {
 
         CliOptionsParser cliOptionsParser = new CliOptionsParser();
 

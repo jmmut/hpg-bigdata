@@ -25,6 +25,7 @@ import org.opencb.hpg.bigdata.app.cli.CommandExecutor;
 import org.opencb.hpg.bigdata.tools.variant.Variant2HbaseMR;
 import org.opencb.hpg.bigdata.tools.variant.Vcf2AvroMR;
 import org.opencb.hpg.bigdata.tools.io.parquet.ParquetMR;
+import org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering;
 
 /**
  * Created by imedina on 25/06/15.
@@ -53,6 +54,12 @@ public class VariantCommandExecutor extends CommandExecutor {
                         variantCommandOptions.indexVariantCommandOptions.commonOptions.verbose,
                         variantCommandOptions.indexVariantCommandOptions.commonOptions.conf);
                 index();
+                break;
+            case "ibs":
+                init(variantCommandOptions.ibsVariantCommandOptions.commonOptions.logLevel,
+                        variantCommandOptions.ibsVariantCommandOptions.commonOptions.verbose,
+                        variantCommandOptions.ibsVariantCommandOptions.commonOptions.conf);
+                ibs();
                 break;
             default:
                 break;
@@ -108,6 +115,13 @@ public class VariantCommandExecutor extends CommandExecutor {
         } else {
             Vcf2AvroMR.run(input, output, compression);
         }
+    }
+
+
+    private void ibs() throws Exception {
+        String input = variantCommandOptions.ibsVariantCommandOptions.input;
+
+        SparkIBSClustering.main(new String[]{input});
     }
 
 }

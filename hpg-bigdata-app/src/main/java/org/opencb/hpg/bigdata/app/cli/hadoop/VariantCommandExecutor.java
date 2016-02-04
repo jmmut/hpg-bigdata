@@ -16,16 +16,17 @@
 
 package org.opencb.hpg.bigdata.app.cli.hadoop;
 
-import java.net.URI;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.spark.launcher.SparkLauncher;
 import org.ga4gh.models.Variant;
 import org.opencb.hpg.bigdata.app.cli.CommandExecutor;
+import org.opencb.hpg.bigdata.tools.io.parquet.ParquetMR;
 import org.opencb.hpg.bigdata.tools.variant.Variant2HbaseMR;
 import org.opencb.hpg.bigdata.tools.variant.Vcf2AvroMR;
-import org.opencb.hpg.bigdata.tools.io.parquet.ParquetMR;
-import org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering;
+import org.opencb.hpg.bigdata.tools.variant.spark.InputStreamReaderRunnable;
+
+import java.net.URI;
 
 /**
  * Created by imedina on 25/06/15.
@@ -120,8 +121,31 @@ public class VariantCommandExecutor extends CommandExecutor {
 
     private void ibs() throws Exception {
         String input = variantCommandOptions.ibsVariantCommandOptions.input;
+        String sparkHome = variantCommandOptions.ibsVariantCommandOptions.sparkHome;
+        String appResource = variantCommandOptions.ibsVariantCommandOptions.appResource;
 
-        SparkIBSClustering.main(new String[]{input});
+        SparkLauncher sparkLauncher = new SparkLauncher();
+        Process sparkIBSClustering = sparkLauncher
+                .setSparkHome(sparkHome)
+                .setAppResource(appResource)
+                .setMaster("local[*]")
+                .setMainClass("org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering")
+                .addAppArgs(input)
+                .setVerbose(false)
+                .launch();
+
+//        sparkIBSClustering.waitFor();
+        InputStreamReaderRunnable inputStreamReaderRunnable = new InputStreamReaderRunnable(sparkIBSClustering.getInputStream(), "input");
+        Thread inputThread = new Thread(inputStreamReaderRunnable, "LogStreamReader input");
+        inputThread.start();
+
+        InputStreamReaderRunnable errorStreamReaderRunnable = new InputStreamReaderRunnable(sparkIBSClustering.getErrorStream(), "error");
+        Thread errorThread = new Thread(errorStreamReaderRunnable, "LogStreamReader error");
+        errorThread.start();
+
+        System.out.println("Waiting for finish...");
+        int exitCode = sparkIBSClustering.waitFor();
+        System.out.println("Finished! Exit code:" + exitCode);
     }
 
 }

@@ -26,11 +26,12 @@ import org.opencb.biodata.models.variant.avro.VariantAvro;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
 import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VcfVariantRddAdaptor;
+import org.opencb.hpg.bigdata.tools.variant.spark.writers.FileIbsPairWriter;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.IbsPairWriter;
-import org.opencb.hpg.bigdata.tools.variant.spark.writers.SystemOutIbsPairWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -59,8 +60,9 @@ public class SparkIBSClustering {
      * autonote: perhaps rdd.cogroup or rdd.cartesian are useful
      * @param variants rdd of variants. May be got from files or from hbase.
      * @param ibsPairWriter output each pair here
+     * @throws IOException if the writing fails
      */
-    public void calculate(JavaRDD<Variant> variants, IbsPairWriter ibsPairWriter) {
+    public void calculate(JavaRDD<Variant> variants, IbsPairWriter ibsPairWriter) throws IOException {
 //        long count = variants.count();
 //        System.out.println("there are " + count + " rows");
 
@@ -100,7 +102,7 @@ public class SparkIBSClustering {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         LOGGER.info("info log: IBS test");
         if (args.length != 1) {
@@ -116,7 +118,6 @@ public class SparkIBSClustering {
         JavaRDD<Variant> variants = new VcfVariantRddAdaptor(args[0]).getRdd(ctx);
 
 //            new SparkIBSClustering().calculate(variants, new HBasePairWriter());
-        new SparkIBSClustering().calculate(variants, new SystemOutIbsPairWriter());
-
+        new SparkIBSClustering().calculate(variants, new FileIbsPairWriter("/tmp/sparklog" + System.currentTimeMillis() + ".txt"));
     }
 }

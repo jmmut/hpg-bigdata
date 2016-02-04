@@ -17,14 +17,29 @@
 package org.opencb.hpg.bigdata.tools.variant.spark.writers;
 
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
+import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 
 /**
  * Created by jmmut on 2016-01-28.
  *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public interface IbsPairWriter {
-    void writePair(String firstSample, String secondSample, IdentityByState ibs) throws IOException;
+public class FileIbsPairWriter implements IbsPairWriter {
+
+    private static OutputStreamWriter fileOutputStream;
+    public FileIbsPairWriter(String filename) throws IOException {
+        fileOutputStream = new OutputStreamWriter(new FileOutputStream(filename));
+        fileOutputStream.write("ibs result header: IID1\tIID2\tDST\tZ0\tZ1\tZ2\n");
+    }
+
+    @Override
+    public void writePair(String firstSample, String secondSample, IdentityByState ibs) throws IOException {
+        String line = new IdentityByStateClustering().pairToString(firstSample, secondSample, ibs);
+        fileOutputStream.write("ibs result: " + line);
+        fileOutputStream.flush();
+    }
 }

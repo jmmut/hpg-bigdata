@@ -427,6 +427,10 @@ public class CliOptionsParser {
 
         @Parameter(names = {"-i", "--input"}, description = "input vcf", required = true, arity = 1)
         public String input = null;
+        @Parameter(names = {"-s", "--spark-home"}, description = "path to the spark installation that SparkLauncher will use.", required = true, arity = 1)
+        public String sparkHome = null;
+        @Parameter(names = {"-j", "--jar"}, description = "AppResource (path to the jar) that SparkLauncher will use.", required = true, arity = 1)
+        public String appResource = null;
     }
 
 

@@ -16,22 +16,23 @@
 
 package org.opencb.hpg.bigdata.tools.variant.spark;
 
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.opencb.biodata.models.feature.Genotype;
 import org.opencb.biodata.models.variant.StudyEntry;
 import org.opencb.biodata.models.variant.Variant;
+import org.opencb.biodata.models.variant.avro.VariantAvro;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VcfVariantRddAdaptor;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.IbsPairWriter;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.SystemOutIbsPairWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
 
 import static java.lang.Math.toIntExact;
 
@@ -58,9 +59,8 @@ public class SparkIBSClustering {
      * autonote: perhaps rdd.cogroup or rdd.cartesian are useful
      * @param variants rdd of variants. May be got from files or from hbase.
      * @param ibsPairWriter output each pair here
-     * @throws IOException using outputstreams
      */
-    public void calculate(JavaRDD<Variant> variants, IbsPairWriter ibsPairWriter) throws IOException {
+    public void calculate(JavaRDD<Variant> variants, IbsPairWriter ibsPairWriter) {
 //        long count = variants.count();
 //        System.out.println("there are " + count + " rows");
 
@@ -108,15 +108,15 @@ public class SparkIBSClustering {
             return;
         }
 
-        try {
-            // TODO: choose SparkIBSClustering implementation by reflection
-            JavaRDD<Variant> variants = new VcfVariantRddAdaptor(args[0]).getRdd();
+        SparkConf sparkConf = new SparkConf().setAppName("IbsSparkAnalysis").setMaster("local[3]");    // 3 threads
+        sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
+        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+
+        // TODO: choose SparkIBSClustering implementation by reflection
+        JavaRDD<Variant> variants = new VcfVariantRddAdaptor(args[0]).getRdd(ctx);
 
 //            new SparkIBSClustering().calculate(variants, new HBasePairWriter());
-            new SparkIBSClustering().calculate(variants, new SystemOutIbsPairWriter());
+        new SparkIBSClustering().calculate(variants, new SystemOutIbsPairWriter());
 
-        } catch (IOException e) {
-            LOGGER.error("IBS failed: ", e);
-        }
     }
 }

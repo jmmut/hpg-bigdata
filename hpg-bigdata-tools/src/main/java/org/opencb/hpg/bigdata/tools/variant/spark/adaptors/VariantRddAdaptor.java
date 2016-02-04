@@ -17,9 +17,9 @@
 package org.opencb.hpg.bigdata.tools.variant.spark.adaptors;
 
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.opencb.biodata.models.variant.Variant;
 
-import java.io.IOException;
 import java.io.Serializable;
 
 /**
@@ -28,5 +28,9 @@ import java.io.Serializable;
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
 public interface VariantRddAdaptor extends Serializable {
-    JavaRDD<Variant> getRdd() throws IOException;
+    /**
+     * @param context spark context that will be used to retrieve the dataset
+     * @return the RDD of variants
+     */
+    JavaRDD<Variant> getRdd(JavaSparkContext context);
 }

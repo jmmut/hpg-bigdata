@@ -27,7 +27,9 @@ import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
 import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VcfVariantRddAdaptor;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.FileIbsPairWriter;
+import org.opencb.hpg.bigdata.tools.variant.spark.writers.HBaseIbsPairWriter;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.IbsPairWriter;
+import org.opencb.hpg.bigdata.tools.variant.spark.writers.SystemOutIbsPairWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +56,9 @@ import static java.lang.Math.toIntExact;
 public class SparkIBSClustering {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SparkIBSClustering.class);
+    public static final String HBASE = "hbase";
+    public static final String FILE = "file";
+    public static final String STDOUT = "stdout";
 
     /**
      * generic spark algorithm.
@@ -63,19 +68,14 @@ public class SparkIBSClustering {
      * @throws IOException if the writing fails
      */
     public void calculate(JavaRDD<Variant> variants, IbsPairWriter ibsPairWriter) throws IOException {
-//        long count = variants.count();
-//        System.out.println("there are " + count + " rows");
 
         if (!variants.isEmpty()) {
+//            List<String> samplesNames = variants.takeSample(true, 1).get(0).getStudies().get(0).getOrderedSamplesName();
             List<List<String>> samplesData = variants.takeSample(true, 1).get(0).getStudies().get(0).getSamplesData();
             int numSamples = samplesData.size();
-//            List<String> samplesNames = variants.takeSample(true, 1).get(0).getStudies().get(0).getOrderedSamplesName();
-//            int numSamples = samplesNames.size();
             IdentityByStateClustering ibsc = new IdentityByStateClustering();
-//            System.out.println("before loops");
             ibsc.forEachPair(numSamples, (i, j, compound) -> {
 //                variants.mapPartitions(variant -> {   // maybe?
-//                System.out.println("starting pair" + i + ", " + j);
                 Map<Integer, Long> ibsMap = variants.map(variant -> {
 
 //                    variants.foreachPartition(variantIterator -> {    // Not likely to work
@@ -102,22 +102,54 @@ public class SparkIBSClustering {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
 
         LOGGER.info("info log: IBS test");
-        if (args.length != 1) {
-            System.out.println("only 1 argument needed: filename");
-            return;
+        String input = null;
+        String outputType = null;
+        String output = null;
+
+        if (args.length != 3 && args.length != 2) {
+            throw new Exception("at least 2 argument are required: input filename and outputType");
+        }
+
+        input = args[0];
+        outputType = args[1];
+        if (input == null || outputType == null) {
+            throw new Exception("at least 2 argument are required to be non-null: input filename and outputType");
+        }
+
+        if (args.length == 3) {
+            output = args[2];
+        }
+
+        if (outputType.equalsIgnoreCase(HBASE) && output == null) {
+            throw new Exception("if you want to write the results to hbase, the tableName is required");
+        } else if (outputType.equalsIgnoreCase(FILE) && output == null) {
+            throw new Exception("if you want to write the results to a file, the filePath is required");
         }
 
         SparkConf sparkConf = new SparkConf().setAppName("IbsSparkAnalysis").setMaster("local[3]");    // 3 threads
         sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
-        // TODO: choose SparkIBSClustering implementation by reflection
-        JavaRDD<Variant> variants = new VcfVariantRddAdaptor(args[0]).getRdd(ctx);
+        JavaRDD<Variant> variants = new VcfVariantRddAdaptor(input).getRdd(ctx);
 
-//            new SparkIBSClustering().calculate(variants, new HBasePairWriter());
-        new SparkIBSClustering().calculate(variants, new FileIbsPairWriter("/tmp/sparklog" + System.currentTimeMillis() + ".txt"));
+        if (outputType.equalsIgnoreCase(HBASE)) {
+            try (IbsPairWriter ibsPairWriter = new HBaseIbsPairWriter(output)) {
+                new SparkIBSClustering().calculate(variants, ibsPairWriter);
+            }
+        } else if (outputType.equalsIgnoreCase(FILE)) {
+            try (IbsPairWriter ibsPairWriter = new FileIbsPairWriter(output)) {
+                new SparkIBSClustering().calculate(variants, ibsPairWriter);
+            }
+        } else if (outputType.equalsIgnoreCase(STDOUT)) {
+            try (IbsPairWriter ibsPairWriter = new SystemOutIbsPairWriter()) {
+                new SparkIBSClustering().calculate(variants, ibsPairWriter);
+            }
+        } else {
+            throw new IllegalArgumentException(String.format(
+                    "don't know how to write in %s, try %s, %s or %s", outputType, STDOUT, HBASE, FILE));
+        }
     }
 }

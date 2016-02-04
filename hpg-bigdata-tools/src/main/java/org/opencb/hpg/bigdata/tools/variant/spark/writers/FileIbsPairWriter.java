@@ -40,6 +40,10 @@ public class FileIbsPairWriter implements IbsPairWriter {
     public void writePair(String firstSample, String secondSample, IdentityByState ibs) throws IOException {
         String line = new IdentityByStateClustering().pairToString(firstSample, secondSample, ibs);
         fileOutputStream.write("ibs result: " + line);
-        fileOutputStream.flush();
+    }
+
+    @Override
+    public void close() throws Exception {
+        fileOutputStream.close();
     }
 }

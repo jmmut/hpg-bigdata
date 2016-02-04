@@ -123,16 +123,27 @@ public class VariantCommandExecutor extends CommandExecutor {
         String input = variantCommandOptions.ibsVariantCommandOptions.input;
         String sparkHome = variantCommandOptions.ibsVariantCommandOptions.sparkHome;
         String appResource = variantCommandOptions.ibsVariantCommandOptions.appResource;
+        String outputType = variantCommandOptions.ibsVariantCommandOptions.outputType;
+        String output = variantCommandOptions.ibsVariantCommandOptions.output;
 
-        SparkLauncher sparkLauncher = new SparkLauncher();
-        Process sparkIBSClustering = sparkLauncher
+        if (input == null || outputType == null) {
+            throw new IllegalArgumentException("input and outputType must not be null");
+        }
+
+        SparkLauncher sparkLauncher = new SparkLauncher()
                 .setSparkHome(sparkHome)
                 .setAppResource(appResource)
                 .setMaster("local[*]")
                 .setMainClass("org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering")
-                .addAppArgs(input)
-                .setVerbose(false)
-                .launch();
+                .setVerbose(false);
+
+        if (output == null) {
+            sparkLauncher.addAppArgs(input, outputType);
+        } else {
+            sparkLauncher.addAppArgs(input, outputType, output);
+        }
+
+        Process sparkIBSClustering = sparkLauncher.launch();
 
 //        sparkIBSClustering.waitFor();
         InputStreamReaderRunnable inputStreamReaderRunnable = new InputStreamReaderRunnable(sparkIBSClustering.getInputStream(), "input");

@@ -35,4 +35,8 @@ public class SystemOutIbsPairWriter implements IbsPairWriter {
         String line = new IdentityByStateClustering().pairToString(firstSample, secondSample, ibs);
         System.out.println("ibs result: " + line);
     }
+
+    @Override
+    public void close() throws Exception {
+    }
 }

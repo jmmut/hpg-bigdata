@@ -25,6 +25,6 @@ import java.io.IOException;
  *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public interface IbsPairWriter {
+public interface IbsPairWriter extends AutoCloseable {
     void writePair(String firstSample, String secondSample, IdentityByState ibs) throws IOException;
 }

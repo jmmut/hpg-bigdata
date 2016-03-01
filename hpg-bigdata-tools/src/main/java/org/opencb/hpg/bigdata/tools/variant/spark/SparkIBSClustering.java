@@ -25,7 +25,8 @@ import org.opencb.biodata.models.variant.Variant;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
 import org.opencb.hpg.bigdata.tools.spark.SparkToolExecutor;
-import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VcfVariantRddAdaptor;
+import org.opencb.hpg.bigdata.tools.spark.datasource.SparkDataSource;
+import org.opencb.hpg.bigdata.tools.spark.datasource.VcfSparkDataSource;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.FileIbsPairWriter;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.HBaseIbsPairWriter;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.IbsPairWriter;
@@ -34,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -60,11 +62,11 @@ public class SparkIBSClustering extends SparkToolExecutor {
     public static final String FILE = "file";
     public static final String STDOUT = "stdout";
     private IbsPairWriter ibsPairWriter;
-    private JavaRDD<Variant> variants;
+    private SparkDataSource<Variant> sparkDataSource;
 
-    public SparkIBSClustering(IbsPairWriter ibsPairWriter, JavaRDD<Variant> variants) {
+    public SparkIBSClustering(SparkDataSource<Variant> sparkDataSource, IbsPairWriter ibsPairWriter) {
+        this.sparkDataSource = sparkDataSource;
         this.ibsPairWriter = ibsPairWriter;
-        this.variants = variants;
     }
 
     /**
@@ -74,6 +76,7 @@ public class SparkIBSClustering extends SparkToolExecutor {
      */
     public void execute() throws Exception {
 
+        JavaRDD<Variant> variants = sparkDataSource.createRDD();
         if (!variants.isEmpty()) {
 //            List<String> samplesNames = variants.takeSample(true, 1).get(0).getStudies().get(0).getOrderedSamplesName();
             List<List<String>> samplesData = variants.takeSample(true, 1).get(0).getStudies().get(0).getSamplesData();
@@ -138,19 +141,19 @@ public class SparkIBSClustering extends SparkToolExecutor {
         SparkConf sparkConf = createSparkConf("IbsSparkAnalysis", "local", 2, true);
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
-        JavaRDD<Variant> variants = new VcfVariantRddAdaptor(input).getRdd(ctx);
+        VcfSparkDataSource sparkDataSource = new VcfSparkDataSource(sparkConf, ctx, Paths.get(input));
 
         if (outputType.equalsIgnoreCase(HBASE)) {
             try (IbsPairWriter ibsPairWriter = new HBaseIbsPairWriter(output)) {
-                new SparkIBSClustering(ibsPairWriter, variants).execute();
+                new SparkIBSClustering(sparkDataSource, ibsPairWriter).execute();
             }
         } else if (outputType.equalsIgnoreCase(FILE)) {
             try (IbsPairWriter ibsPairWriter = new FileIbsPairWriter(output)) {
-                new SparkIBSClustering(ibsPairWriter, variants).execute();
+                new SparkIBSClustering(sparkDataSource, ibsPairWriter).execute();
             }
         } else if (outputType.equalsIgnoreCase(STDOUT)) {
             try (IbsPairWriter ibsPairWriter = new SystemOutIbsPairWriter()) {
-                new SparkIBSClustering(ibsPairWriter, variants).execute();
+                new SparkIBSClustering(sparkDataSource, ibsPairWriter).execute();
             }
         } else {
             throw new IllegalArgumentException(String.format(

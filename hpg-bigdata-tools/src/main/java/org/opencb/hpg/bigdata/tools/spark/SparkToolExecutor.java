@@ -32,7 +32,7 @@ public abstract class SparkToolExecutor {
         sparkToolsRegister = new HashMap<>();
     }
 
-    public abstract void execute();
+    public abstract void execute() throws Exception;
 
     protected static SparkConf createSparkConf(String appName, String master, int numThreads, boolean useKryo) {
         SparkConf sparkConf = new SparkConf()

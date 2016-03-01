@@ -22,9 +22,9 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.opencb.biodata.models.feature.Genotype;
 import org.opencb.biodata.models.variant.StudyEntry;
 import org.opencb.biodata.models.variant.Variant;
-import org.opencb.biodata.models.variant.avro.VariantAvro;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
+import org.opencb.hpg.bigdata.tools.spark.SparkToolExecutor;
 import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VcfVariantRddAdaptor;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.FileIbsPairWriter;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.HBaseIbsPairWriter;
@@ -53,21 +53,26 @@ import static java.lang.Math.toIntExact;
  *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public class SparkIBSClustering {
+public class SparkIBSClustering extends SparkToolExecutor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SparkIBSClustering.class);
     public static final String HBASE = "hbase";
     public static final String FILE = "file";
     public static final String STDOUT = "stdout";
+    private IbsPairWriter ibsPairWriter;
+    private JavaRDD<Variant> variants;
+
+    public SparkIBSClustering(IbsPairWriter ibsPairWriter, JavaRDD<Variant> variants) {
+        this.ibsPairWriter = ibsPairWriter;
+        this.variants = variants;
+    }
 
     /**
      * generic spark algorithm.
      * autonote: perhaps rdd.cogroup or rdd.cartesian are useful
-     * @param variants rdd of variants. May be got from files or from hbase.
-     * @param ibsPairWriter output each pair here
      * @throws IOException if the writing fails
      */
-    public void calculate(JavaRDD<Variant> variants, IbsPairWriter ibsPairWriter) throws IOException {
+    public void execute() throws Exception {
 
         if (!variants.isEmpty()) {
 //            List<String> samplesNames = variants.takeSample(true, 1).get(0).getStudies().get(0).getOrderedSamplesName();
@@ -129,23 +134,23 @@ public class SparkIBSClustering {
             throw new Exception("if you want to write the results to a file, the filePath is required");
         }
 
-        SparkConf sparkConf = new SparkConf().setAppName("IbsSparkAnalysis").setMaster("local[3]");    // 3 threads
-        sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
+
+        SparkConf sparkConf = createSparkConf("IbsSparkAnalysis", "local", 2, true);
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
         JavaRDD<Variant> variants = new VcfVariantRddAdaptor(input).getRdd(ctx);
 
         if (outputType.equalsIgnoreCase(HBASE)) {
             try (IbsPairWriter ibsPairWriter = new HBaseIbsPairWriter(output)) {
-                new SparkIBSClustering().calculate(variants, ibsPairWriter);
+                new SparkIBSClustering(ibsPairWriter, variants).execute();
             }
         } else if (outputType.equalsIgnoreCase(FILE)) {
             try (IbsPairWriter ibsPairWriter = new FileIbsPairWriter(output)) {
-                new SparkIBSClustering().calculate(variants, ibsPairWriter);
+                new SparkIBSClustering(ibsPairWriter, variants).execute();
             }
         } else if (outputType.equalsIgnoreCase(STDOUT)) {
             try (IbsPairWriter ibsPairWriter = new SystemOutIbsPairWriter()) {
-                new SparkIBSClustering().calculate(variants, ibsPairWriter);
+                new SparkIBSClustering(ibsPairWriter, variants).execute();
             }
         } else {
             throw new IllegalArgumentException(String.format(

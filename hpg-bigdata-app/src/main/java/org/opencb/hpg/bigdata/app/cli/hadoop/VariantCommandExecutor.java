@@ -25,6 +25,7 @@ import org.opencb.hpg.bigdata.tools.io.parquet.ParquetMR;
 import org.opencb.hpg.bigdata.tools.variant.Variant2HbaseMR;
 import org.opencb.hpg.bigdata.tools.variant.Vcf2AvroMR;
 import org.opencb.hpg.bigdata.tools.variant.spark.InputStreamReaderRunnable;
+import org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering;
 
 import java.net.URI;
 
@@ -118,14 +119,33 @@ public class VariantCommandExecutor extends CommandExecutor {
         }
     }
 
-
     private void ibs() throws Exception {
+        ibsSparkLauncher();
+    }
+
+    private void ibsNoSparkLauncher() throws Exception {
+        String input = variantCommandOptions.ibsVariantCommandOptions.input;
+        String inputType = variantCommandOptions.ibsVariantCommandOptions.inputType;
+        String outputType = variantCommandOptions.ibsVariantCommandOptions.outputType;
+        String output = variantCommandOptions.ibsVariantCommandOptions.output;
+        String connector = variantCommandOptions.ibsVariantCommandOptions.connector;
+
+        String[] args = new String[]{connector, inputType, input, outputType, output};
+        SparkIBSClustering.main(args);
+    }
+
+    /**
+     * old way to do it, using SparkLauncher. in ibs() we call the main() directly.
+     * @throws Exception in case the analysis failed
+     */
+    private void ibsSparkLauncher() throws Exception {
         String input = variantCommandOptions.ibsVariantCommandOptions.input;
         String inputType = variantCommandOptions.ibsVariantCommandOptions.inputType;
         String sparkHome = variantCommandOptions.ibsVariantCommandOptions.sparkHome;
         String appResource = variantCommandOptions.ibsVariantCommandOptions.appResource;
         String outputType = variantCommandOptions.ibsVariantCommandOptions.outputType;
         String output = variantCommandOptions.ibsVariantCommandOptions.output;
+        String connector = variantCommandOptions.ibsVariantCommandOptions.connector;
 
         if (input == null || outputType == null) {
             throw new IllegalArgumentException("input and outputType must not be null");
@@ -138,11 +158,7 @@ public class VariantCommandExecutor extends CommandExecutor {
                 .setMainClass("org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering")
                 .setVerbose(false);
 
-        if (output == null) {
-            sparkLauncher.addAppArgs(inputType, input, outputType);
-        } else {
-            sparkLauncher.addAppArgs(inputType, input, outputType, output);
-        }
+        sparkLauncher.addAppArgs(connector, inputType, input, outputType, output);
 
         Process sparkIBSClustering = sparkLauncher.launch();
 

@@ -16,6 +16,7 @@
 
 package org.opencb.hpg.bigdata.tools.variant.spark;
 
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -24,7 +25,9 @@ import org.opencb.biodata.models.variant.StudyEntry;
 import org.opencb.biodata.models.variant.Variant;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
+import org.opencb.hpg.bigdata.core.connectors.Connector;
 import org.opencb.hpg.bigdata.tools.spark.SparkToolExecutor;
+import org.opencb.hpg.bigdata.tools.spark.datasource.HBaseVariantSparkDataSource;
 import org.opencb.hpg.bigdata.tools.spark.datasource.SparkDataSource;
 import org.opencb.hpg.bigdata.tools.spark.datasource.VcfSparkDataSource;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.FileIbsPairWriter;
@@ -34,7 +37,6 @@ import org.opencb.hpg.bigdata.tools.variant.spark.writers.SystemOutIbsPairWriter
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +74,7 @@ public class SparkIBSClustering extends SparkToolExecutor {
     /**
      * generic spark algorithm.
      * autonote: perhaps rdd.cogroup or rdd.cartesian are useful
-     * @throws IOException if the writing fails
+     * @throws Exception if the writing fails
      */
     public void execute() throws Exception {
 
@@ -122,32 +124,32 @@ public class SparkIBSClustering extends SparkToolExecutor {
     public static void main(String[] args) throws Exception {
 
         LOGGER.info("info log: IBS test");
-        String inputType = null;
-        String input = null;
-        String connectorClassName = null;
-        String outputType = null;
-        String output = null;
 
         // basic parameter validation
-        if (args.length != 3 && args.length != 4) {
-            throw new Exception("at least 3 argument are required: inputType, input filename and outputType");
+        if (args.length != 5) {
+            throw new Exception("5 argument are required: connector, inputType, input filename, outputType and output");
         }
 
-        inputType = args[0];
-        input = args[1];
-        outputType = args[2];
+        String connectorClassName = args[0];
+        connectorClassName = "null".equals(connectorClassName) ? null : connectorClassName;
+        String inputType = args [1];
+        String input = args[2];
+        String outputType = args[3];
+        String output = args[4];
+
         if (inputType == null || input == null || outputType == null) {
             throw new Exception("at least 3 argument are required to be non-null: inputType, input filename and outputType");
         }
 
-        if (args.length == 4) {
-            output = args[3];
+        if (outputType.equalsIgnoreCase(HBASE) && output == null) {
+            throw new Exception("if you want to write the results to hbase, the output tableName is required");
+        } else if (outputType.equalsIgnoreCase(FILE) && output == null) {
+            throw new Exception("if you want to write the results to a file, the output filePath is required");
         }
 
-        if (outputType.equalsIgnoreCase(HBASE) && output == null) {
-            throw new Exception("if you want to write the results to hbase, the tableName is required");
-        } else if (outputType.equalsIgnoreCase(FILE) && output == null) {
-            throw new Exception("if you want to write the results to a file, the filePath is required");
+        if (inputType.equalsIgnoreCase(HBASE) && connectorClassName == null) {
+            throw new Exception(
+                    "if you want to read from HBase, you need to provide a Connector className to convert Hbase rows to Variants");
         }
 
 
@@ -157,15 +159,14 @@ public class SparkIBSClustering extends SparkToolExecutor {
 
 
         // choose input implementation
-        VcfSparkDataSource sparkDataSource;
-        /*
+        SparkDataSource sparkDataSource;
+
         if (inputType.equalsIgnoreCase(HBASE)) {
             Class clazz = Class.forName(connectorClassName);
             Connector<Result, Variant> connector = (Connector) clazz.getConstructor(String.class).newInstance(input);
-            rddAdaptor = new HBaseVariantRddAdaptor(input, connector.getConverter());
-
+            sparkDataSource = new HBaseVariantSparkDataSource(sparkConf, ctx, input, connector.getConverter());
         } else
-            */ if (inputType.equalsIgnoreCase(FILE)) {
+            if (inputType.equalsIgnoreCase(FILE)) {
             sparkDataSource = new VcfSparkDataSource(sparkConf, ctx, Paths.get(input));
         } else {
             throw new IllegalArgumentException(String.format(

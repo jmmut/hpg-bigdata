@@ -27,7 +27,6 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.opencb.biodata.models.variant.Variant;
 import org.opencb.biodata.tools.variant.converter.Converter;
-import org.opencb.hpg.bigdata.tools.spark.datasource.SparkDataSource;
 
 import java.io.IOException;
 
@@ -42,6 +41,8 @@ public class HBaseVariantSparkDataSource extends SparkDataSource<Variant> {
     private Converter<Result, Variant> converter;
 
     /**
+     * @param sparkConf spark configuration
+     * @param sparkContext spark context
      * @param tableName source table
      * @param converter convert type from DB native to workable-with model
      */

@@ -18,7 +18,10 @@ package org.opencb.hpg.bigdata.app;
 
 import com.beust.jcommander.ParameterException;
 import org.opencb.hpg.bigdata.app.cli.CommandExecutor;
-import org.opencb.hpg.bigdata.app.cli.hadoop.*;
+import org.opencb.hpg.bigdata.app.cli.hadoop.AlignmentCommandExecutor;
+import org.opencb.hpg.bigdata.app.cli.hadoop.CliOptionsParser;
+import org.opencb.hpg.bigdata.app.cli.hadoop.SequenceCommandExecutor;
+import org.opencb.hpg.bigdata.app.cli.hadoop.VariantCommandExecutor;
 
 import java.io.IOException;
 import java.util.Properties;

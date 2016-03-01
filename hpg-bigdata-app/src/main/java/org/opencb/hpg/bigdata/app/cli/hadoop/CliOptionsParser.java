@@ -69,6 +69,7 @@ public class CliOptionsParser {
         JCommander variantSubCommands = jcommander.getCommands().get("variant");
         variantSubCommands.addCommand("convert", variantCommandOptions.convertVariantCommandOptions);
         variantSubCommands.addCommand("index", variantCommandOptions.indexVariantCommandOptions);
+        variantSubCommands.addCommand("ibs", variantCommandOptions.ibsVariantCommandOptions);
 
 //        convertCommandOptions = new ConvertCommandOptions();
     }
@@ -343,10 +344,12 @@ public class CliOptionsParser {
 
         ConvertVariantCommandOptions convertVariantCommandOptions;
         IndexVariantCommandOptions indexVariantCommandOptions;
+        IbsVariantCommandOptions ibsVariantCommandOptions;
 
         public VariantCommandOptions() {
             this.convertVariantCommandOptions = new ConvertVariantCommandOptions();
             this.indexVariantCommandOptions = new IndexVariantCommandOptions();
+            this.ibsVariantCommandOptions = new IbsVariantCommandOptions();
         }
     }
 
@@ -413,6 +416,25 @@ public class CliOptionsParser {
         @Parameter(names = {"--credentials"}, description = "Database credentials: user, password, host, port", arity = 1)
         public String credentials;
 
+    }
+
+    @Parameters(commandNames = {"ibs"},
+            commandDescription = "Run Identity-By-State analysis")
+    public class IbsVariantCommandOptions {
+
+        @ParametersDelegate
+        public CommonCommandOptions commonOptions = commonCommandOptions;
+
+        @Parameter(names = {"-i", "--input"}, description = "input vcf", required = true, arity = 1)
+        public String input = null;
+        @Parameter(names = {"-s", "--spark-home"}, description = "path to the spark installation that SparkLauncher will use.", required = true, arity = 1)
+        public String sparkHome = null;
+        @Parameter(names = {"-j", "--jar"}, description = "AppResource (path to the jar) that SparkLauncher will use.", required = true, arity = 1)
+        public String appResource = null;
+        @Parameter(names = {"-t", "--output-type"}, description = "How to write the output (stdout, hbase, file). hbase and file require \"-o\" as well.", required = true, arity = 1)
+        public String outputType = null;
+        @Parameter(names = {"-o", "--output"}, description = "Location to write the output (see \"-t\"). This can be a file path, or an hbase table name.", required = false, arity = 1)
+        public String output = null;
     }
 
 

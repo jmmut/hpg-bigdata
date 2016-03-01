@@ -48,7 +48,8 @@ public class FilterDuplicatedSparkTool extends SparkToolExecutor {
             // A Variant RDD is obtained from a Spark Data Source, this can be VCF or Avro in HDFS for instance
             JavaRDD<Variant> vcfRdd = sparkDataSource.createRDD();
             List<Tuple2<String, Integer>> duplicated = vcfRdd
-                    .mapToPair(variant -> new Tuple2<>(variant.getChromosome() + "_" + variant.getStart() + "_" + variant.getReference(), 1))
+                    .mapToPair(variant -> new Tuple2<>(
+                            variant.getChromosome() + "_" + variant.getStart() + "_" + variant.getReference(), 1))
                     .reduceByKey((a, b) -> a + b)
                     .filter(v -> v._2 > 1).collect();
 

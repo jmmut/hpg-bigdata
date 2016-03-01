@@ -16,15 +16,17 @@
 
 package org.opencb.hpg.bigdata.app.cli.hadoop;
 
-import java.net.URI;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.spark.launcher.SparkLauncher;
 import org.ga4gh.models.Variant;
 import org.opencb.hpg.bigdata.app.cli.CommandExecutor;
+import org.opencb.hpg.bigdata.tools.io.parquet.ParquetMR;
 import org.opencb.hpg.bigdata.tools.variant.Variant2HbaseMR;
 import org.opencb.hpg.bigdata.tools.variant.Vcf2AvroMR;
-import org.opencb.hpg.bigdata.tools.io.parquet.ParquetMR;
+import org.opencb.hpg.bigdata.tools.variant.spark.InputStreamReaderRunnable;
+
+import java.net.URI;
 
 /**
  * Created by imedina on 25/06/15.
@@ -53,6 +55,12 @@ public class VariantCommandExecutor extends CommandExecutor {
                         variantCommandOptions.indexVariantCommandOptions.commonOptions.verbose,
                         variantCommandOptions.indexVariantCommandOptions.commonOptions.conf);
                 index();
+                break;
+            case "ibs":
+                init(variantCommandOptions.ibsVariantCommandOptions.commonOptions.logLevel,
+                        variantCommandOptions.ibsVariantCommandOptions.commonOptions.verbose,
+                        variantCommandOptions.ibsVariantCommandOptions.commonOptions.conf);
+                ibs();
                 break;
             default:
                 break;
@@ -108,6 +116,47 @@ public class VariantCommandExecutor extends CommandExecutor {
         } else {
             Vcf2AvroMR.run(input, output, compression);
         }
+    }
+
+
+    private void ibs() throws Exception {
+        String input = variantCommandOptions.ibsVariantCommandOptions.input;
+        String sparkHome = variantCommandOptions.ibsVariantCommandOptions.sparkHome;
+        String appResource = variantCommandOptions.ibsVariantCommandOptions.appResource;
+        String outputType = variantCommandOptions.ibsVariantCommandOptions.outputType;
+        String output = variantCommandOptions.ibsVariantCommandOptions.output;
+
+        if (input == null || outputType == null) {
+            throw new IllegalArgumentException("input and outputType must not be null");
+        }
+
+        SparkLauncher sparkLauncher = new SparkLauncher()
+                .setSparkHome(sparkHome)
+                .setAppResource(appResource)
+                .setMaster("local[*]")
+                .setMainClass("org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering")
+                .setVerbose(false);
+
+        if (output == null) {
+            sparkLauncher.addAppArgs(input, outputType);
+        } else {
+            sparkLauncher.addAppArgs(input, outputType, output);
+        }
+
+        Process sparkIBSClustering = sparkLauncher.launch();
+
+//        sparkIBSClustering.waitFor();
+        InputStreamReaderRunnable inputStreamReaderRunnable = new InputStreamReaderRunnable(sparkIBSClustering.getInputStream(), "input");
+        Thread inputThread = new Thread(inputStreamReaderRunnable, "LogStreamReader input");
+        inputThread.start();
+
+        InputStreamReaderRunnable errorStreamReaderRunnable = new InputStreamReaderRunnable(sparkIBSClustering.getErrorStream(), "error");
+        Thread errorThread = new Thread(errorStreamReaderRunnable, "LogStreamReader error");
+        errorThread.start();
+
+        System.out.println("Waiting for finish...");
+        int exitCode = sparkIBSClustering.waitFor();
+        System.out.println("Finished! Exit code:" + exitCode);
     }
 
 }

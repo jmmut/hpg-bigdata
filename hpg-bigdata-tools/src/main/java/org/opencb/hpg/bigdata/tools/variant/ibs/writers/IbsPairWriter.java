@@ -14,23 +14,17 @@
  * limitations under the License.
  */
 
-package org.opencb.hpg.bigdata.tools.variant.spark.adaptors;
+package org.opencb.hpg.bigdata.tools.variant.ibs.writers;
 
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.opencb.biodata.models.variant.Variant;
+import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 
-import java.io.Serializable;
+import java.io.IOException;
 
 /**
- * Created by jmmut on 2016-02-04.
+ * Created by jmmut on 2016-01-28.
  *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public interface VariantRddAdaptor extends Serializable {
-    /**
-     * @param context spark context that will be used to retrieve the dataset
-     * @return the RDD of variants
-     */
-    JavaRDD<Variant> getRdd(JavaSparkContext context);
+public interface IbsPairWriter extends AutoCloseable {
+    void writePair(String firstSample, String secondSample, IdentityByState ibs) throws IOException;
 }

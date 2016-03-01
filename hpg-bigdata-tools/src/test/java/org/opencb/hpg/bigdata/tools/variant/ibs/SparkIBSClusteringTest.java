@@ -1,9 +1,7 @@
-package org.opencb.hpg.bigdata.tools.variant.spark;
+package org.opencb.hpg.bigdata.tools.variant.ibs;
 
 import org.junit.Ignore;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by jmmut on 2016-03-01.

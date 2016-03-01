@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.opencb.hpg.bigdata.tools.variant.spark;
+package org.opencb.hpg.bigdata.tools.variant.ibs;
 
 import java.io.BufferedReader;
 import java.io.IOException;

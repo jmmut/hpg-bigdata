@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.opencb.hpg.bigdata.tools.variant.spark.writers;
+package org.opencb.hpg.bigdata.tools.variant.ibs.writers;
 
 
 import org.apache.hadoop.conf.Configuration;

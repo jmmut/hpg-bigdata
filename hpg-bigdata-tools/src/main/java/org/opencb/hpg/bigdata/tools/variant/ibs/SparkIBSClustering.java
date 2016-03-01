@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.opencb.hpg.bigdata.tools.variant.spark;
+package org.opencb.hpg.bigdata.tools.variant.ibs;
 
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.spark.SparkConf;
@@ -30,10 +30,10 @@ import org.opencb.hpg.bigdata.tools.spark.SparkToolExecutor;
 import org.opencb.hpg.bigdata.tools.spark.datasource.HBaseVariantSparkDataSource;
 import org.opencb.hpg.bigdata.tools.spark.datasource.SparkDataSource;
 import org.opencb.hpg.bigdata.tools.spark.datasource.VcfSparkDataSource;
-import org.opencb.hpg.bigdata.tools.variant.spark.writers.FileIbsPairWriter;
-import org.opencb.hpg.bigdata.tools.variant.spark.writers.HBaseIbsPairWriter;
-import org.opencb.hpg.bigdata.tools.variant.spark.writers.IbsPairWriter;
-import org.opencb.hpg.bigdata.tools.variant.spark.writers.SystemOutIbsPairWriter;
+import org.opencb.hpg.bigdata.tools.variant.ibs.writers.FileIbsPairWriter;
+import org.opencb.hpg.bigdata.tools.variant.ibs.writers.HBaseIbsPairWriter;
+import org.opencb.hpg.bigdata.tools.variant.ibs.writers.IbsPairWriter;
+import org.opencb.hpg.bigdata.tools.variant.ibs.writers.SystemOutIbsPairWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

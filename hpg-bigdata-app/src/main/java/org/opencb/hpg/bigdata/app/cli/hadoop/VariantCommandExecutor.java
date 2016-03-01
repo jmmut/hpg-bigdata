@@ -24,8 +24,8 @@ import org.opencb.hpg.bigdata.app.cli.CommandExecutor;
 import org.opencb.hpg.bigdata.tools.io.parquet.ParquetMR;
 import org.opencb.hpg.bigdata.tools.variant.Variant2HbaseMR;
 import org.opencb.hpg.bigdata.tools.variant.Vcf2AvroMR;
-import org.opencb.hpg.bigdata.tools.variant.spark.InputStreamReaderRunnable;
-import org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering;
+import org.opencb.hpg.bigdata.tools.variant.ibs.InputStreamReaderRunnable;
+import org.opencb.hpg.bigdata.tools.variant.ibs.SparkIBSClustering;
 
 import java.net.URI;
 
@@ -155,7 +155,7 @@ public class VariantCommandExecutor extends CommandExecutor {
                 .setSparkHome(sparkHome)
                 .setAppResource(appResource)
                 .setMaster("local[*]")
-                .setMainClass("org.opencb.hpg.bigdata.tools.variant.spark.SparkIBSClustering")
+                .setMainClass("org.opencb.hpg.bigdata.tools.variant.ibs.SparkIBSClustering")
                 .setVerbose(false);
 
         sparkLauncher.addAppArgs(connector, inputType, input, outputType, output);

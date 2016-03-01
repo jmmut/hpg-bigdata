@@ -15,7 +15,7 @@ public class SparkIBSClusteringTest {
     public void testMain() throws Exception {
         String path = SparkIBSClusteringTest.class.getClassLoader().getResource("ibs.vcf").getPath();
 
-        SparkIBSClustering.main(new String[]{path, "stdout"});
+        SparkIBSClustering.main(new String[]{"file", path, "stdout"});
 
     }
 }

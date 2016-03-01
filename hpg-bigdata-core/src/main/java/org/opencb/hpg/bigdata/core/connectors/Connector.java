@@ -1,6 +1,6 @@
 package org.opencb.hpg.bigdata.core.connectors;
 
-import com.fasterxml.jackson.databind.util.Converter;
+import org.opencb.biodata.tools.variant.converter.Converter;
 import org.opencb.datastore.core.ObjectMap;
 
 /**
@@ -8,7 +8,7 @@ import org.opencb.datastore.core.ObjectMap;
  *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public interface Connector {
+public interface Connector<InputType, OutputType> {
     /**
      * object map with all the data required to connect to the data source, such as user, password, location,
      * table names, filters, etc.
@@ -19,7 +19,9 @@ public interface Connector {
     /**
      * Polymorphism to convert storage format to model beans.
      * @return an instance of a specific converter
+     * @throws Exception in case anything goes wrong. Perhaps it is interesting for implementers to throw
+     * Exceptions of a more specific type.
      */
-    Converter getConverter();
+    Converter<InputType, OutputType> getConverter() throws Exception;
 
 }

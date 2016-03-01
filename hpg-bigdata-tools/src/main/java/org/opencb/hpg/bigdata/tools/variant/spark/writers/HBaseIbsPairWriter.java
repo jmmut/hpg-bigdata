@@ -35,10 +35,19 @@ import java.io.IOException;
  *
  * @author Jose Miguel Mut Lopez &lt;jmmut@ebi.ac.uk&gt;
  */
-public class HBaseIbsPairWriter implements IbsPairWriter, AutoCloseable {
+public class HBaseIbsPairWriter implements IbsPairWriter {
 
     private final Table table;
 
+    /**
+     * constructor. As IbsPairWriter is Autocloseable, it is needed to use a try-with-resources
+     * when you create a HBaseIbsPairWriter. This way it will auto close its resources properly.
+     *
+     * Alternatively,  you can call close() yourself to avoid using a try-with-resources.
+     *
+     * @param tableName for the output
+     * @throws IOException if unable to open table
+     */
     public HBaseIbsPairWriter(String tableName) throws IOException {
 
         if (tableName == null) {

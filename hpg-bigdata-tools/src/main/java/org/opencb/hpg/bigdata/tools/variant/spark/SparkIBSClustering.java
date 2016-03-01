@@ -110,25 +110,38 @@ public class SparkIBSClustering extends SparkToolExecutor {
         }
     }
 
+    /**
+     * steps:
+     * - parameter basic validation
+     * - reader/writer implementation choice, based on parameters. reflection if necessary
+     * - create spark context
+     * - actual computation
+     * @param args input, inputType, output, outputType
+     * @throws Exception wrong arguments, IOExceptions, etc. We don't constraint the interface
+     */
     public static void main(String[] args) throws Exception {
 
         LOGGER.info("info log: IBS test");
+        String inputType = null;
         String input = null;
+        String connectorClassName = null;
         String outputType = null;
         String output = null;
 
-        if (args.length != 3 && args.length != 2) {
-            throw new Exception("at least 2 argument are required: input filename and outputType");
+        // basic parameter validation
+        if (args.length != 3 && args.length != 4) {
+            throw new Exception("at least 3 argument are required: inputType, input filename and outputType");
         }
 
-        input = args[0];
-        outputType = args[1];
-        if (input == null || outputType == null) {
-            throw new Exception("at least 2 argument are required to be non-null: input filename and outputType");
+        inputType = args[0];
+        input = args[1];
+        outputType = args[2];
+        if (inputType == null || input == null || outputType == null) {
+            throw new Exception("at least 3 argument are required to be non-null: inputType, input filename and outputType");
         }
 
-        if (args.length == 3) {
-            output = args[2];
+        if (args.length == 4) {
+            output = args[3];
         }
 
         if (outputType.equalsIgnoreCase(HBASE) && output == null) {
@@ -138,26 +151,46 @@ public class SparkIBSClustering extends SparkToolExecutor {
         }
 
 
+        // spark context
         SparkConf sparkConf = createSparkConf("IbsSparkAnalysis", "local", 2, true);
         JavaSparkContext ctx = new JavaSparkContext(sparkConf);
 
-        VcfSparkDataSource sparkDataSource = new VcfSparkDataSource(sparkConf, ctx, Paths.get(input));
 
+        // choose input implementation
+        VcfSparkDataSource sparkDataSource;
+        /*
+        if (inputType.equalsIgnoreCase(HBASE)) {
+            Class clazz = Class.forName(connectorClassName);
+            Connector<Result, Variant> connector = (Connector) clazz.getConstructor(String.class).newInstance(input);
+            rddAdaptor = new HBaseVariantRddAdaptor(input, connector.getConverter());
+
+        } else
+            */ if (inputType.equalsIgnoreCase(FILE)) {
+            sparkDataSource = new VcfSparkDataSource(sparkConf, ctx, Paths.get(input));
+        } else {
+            throw new IllegalArgumentException(String.format(
+                    "don't know how to read from %s, try %s or %s", inputType, HBASE, FILE));
+        }
+
+        // choose output type implementation
+        IbsPairWriter ibsPairWriter;
         if (outputType.equalsIgnoreCase(HBASE)) {
-            try (IbsPairWriter ibsPairWriter = new HBaseIbsPairWriter(output)) {
-                new SparkIBSClustering(sparkDataSource, ibsPairWriter).execute();
-            }
+            ibsPairWriter = new HBaseIbsPairWriter(output);
+
         } else if (outputType.equalsIgnoreCase(FILE)) {
-            try (IbsPairWriter ibsPairWriter = new FileIbsPairWriter(output)) {
-                new SparkIBSClustering(sparkDataSource, ibsPairWriter).execute();
-            }
+            ibsPairWriter = new FileIbsPairWriter(output);
+
         } else if (outputType.equalsIgnoreCase(STDOUT)) {
-            try (IbsPairWriter ibsPairWriter = new SystemOutIbsPairWriter()) {
-                new SparkIBSClustering(sparkDataSource, ibsPairWriter).execute();
-            }
+            ibsPairWriter = new SystemOutIbsPairWriter();
+
         } else {
             throw new IllegalArgumentException(String.format(
                     "don't know how to write in %s, try %s, %s or %s", outputType, STDOUT, HBASE, FILE));
         }
+
+
+        // do the actual computation, once we know how to read and write
+        new SparkIBSClustering(sparkDataSource, ibsPairWriter).execute();
+        ibsPairWriter.close();
     }
 }

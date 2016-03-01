@@ -16,15 +16,22 @@
 
 package org.opencb.hpg.bigdata.tools.variant.spark;
 
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.opencb.biodata.models.feature.Genotype;
 import org.opencb.biodata.models.variant.StudyEntry;
 import org.opencb.biodata.models.variant.Variant;
+import org.opencb.biodata.models.variant.VariantSource;
 import org.opencb.biodata.models.variant.avro.VariantAvro;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByState;
 import org.opencb.biodata.tools.variant.algorithm.IdentityByStateClustering;
+import org.opencb.biodata.tools.variant.converter.Converter;
+import org.opencb.hpg.bigdata.core.connectors.Connector;
+import org.opencb.hpg.bigdata.core.connectors.VcfToVariantConnector;
+import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.HBaseVariantRddAdaptor;
+import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VariantRddAdaptor;
 import org.opencb.hpg.bigdata.tools.variant.spark.adaptors.VcfVariantRddAdaptor;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.FileIbsPairWriter;
 import org.opencb.hpg.bigdata.tools.variant.spark.writers.HBaseIbsPairWriter;
@@ -102,25 +109,38 @@ public class SparkIBSClustering {
         }
     }
 
+    /**
+     * steps:
+     * - parameter basic validation
+     * - reader/writer implementation choice, based on parameters. reflection if necessary
+     * - create spark context
+     * - actual computation
+     * @param args input, inputType, output, outputType
+     * @throws Exception wrong arguments, IOExceptions, etc. We don't constraint the interface
+     */
     public static void main(String[] args) throws Exception {
 
         LOGGER.info("info log: IBS test");
+        String inputType = null;
         String input = null;
+        String connectorClassName = null;
         String outputType = null;
         String output = null;
 
-        if (args.length != 3 && args.length != 2) {
-            throw new Exception("at least 2 argument are required: input filename and outputType");
+        // basic parameter validation
+        if (args.length != 3 && args.length != 4) {
+            throw new Exception("at least 3 argument are required: inputType, input filename and outputType");
         }
 
-        input = args[0];
-        outputType = args[1];
-        if (input == null || outputType == null) {
-            throw new Exception("at least 2 argument are required to be non-null: input filename and outputType");
+        inputType = args[0];
+        input = args[1];
+        outputType = args[2];
+        if (inputType == null || input == null || outputType == null) {
+            throw new Exception("at least 3 argument are required to be non-null: inputType, input filename and outputType");
         }
 
-        if (args.length == 3) {
-            output = args[2];
+        if (args.length == 4) {
+            output = args[3];
         }
 
         if (outputType.equalsIgnoreCase(HBASE) && output == null) {
@@ -129,27 +149,49 @@ public class SparkIBSClustering {
             throw new Exception("if you want to write the results to a file, the filePath is required");
         }
 
-        SparkConf sparkConf = new SparkConf().setAppName("IbsSparkAnalysis").setMaster("local[3]");    // 3 threads
-        sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
-        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+        // choose input implementation
+        VariantRddAdaptor rddAdaptor;
+        if (inputType.equalsIgnoreCase(HBASE)) {
+            Class clazz = Class.forName(connectorClassName);
+            Connector<Result, Variant> connector = (Connector) clazz.getConstructor(String.class).newInstance(input);
+            rddAdaptor = new HBaseVariantRddAdaptor(input, connector.getConverter());
 
-        JavaRDD<Variant> variants = new VcfVariantRddAdaptor(input).getRdd(ctx);
+        } else if (inputType.equalsIgnoreCase(FILE)) {
+            Converter<String, List<Variant>> converter = new VcfToVariantConnector(
+                    new VariantSource(input, "testFileId", "testStudyId", "testStudyName")).getConverter();
+            rddAdaptor = new VcfVariantRddAdaptor(input, converter);
 
+        } else {
+            throw new IllegalArgumentException(String.format(
+                    "don't know how to read from %s, try %s or %s", inputType, HBASE, FILE));
+        }
+
+        // choose output type implementation
+        IbsPairWriter ibsPairWriter;
         if (outputType.equalsIgnoreCase(HBASE)) {
-            try (IbsPairWriter ibsPairWriter = new HBaseIbsPairWriter(output)) {
-                new SparkIBSClustering().calculate(variants, ibsPairWriter);
-            }
+            ibsPairWriter = new HBaseIbsPairWriter(output);
+
         } else if (outputType.equalsIgnoreCase(FILE)) {
-            try (IbsPairWriter ibsPairWriter = new FileIbsPairWriter(output)) {
-                new SparkIBSClustering().calculate(variants, ibsPairWriter);
-            }
+            ibsPairWriter = new FileIbsPairWriter(output);
+
         } else if (outputType.equalsIgnoreCase(STDOUT)) {
-            try (IbsPairWriter ibsPairWriter = new SystemOutIbsPairWriter()) {
-                new SparkIBSClustering().calculate(variants, ibsPairWriter);
-            }
+            ibsPairWriter = new SystemOutIbsPairWriter();
+
         } else {
             throw new IllegalArgumentException(String.format(
                     "don't know how to write in %s, try %s, %s or %s", outputType, STDOUT, HBASE, FILE));
         }
+
+        // spark context
+        SparkConf sparkConf = new SparkConf().setAppName("IbsSparkAnalysis").setMaster("local[3]");    // 3 threads
+        sparkConf.registerKryoClasses(new Class[]{VariantAvro.class});
+        JavaSparkContext ctx = new JavaSparkContext(sparkConf);
+
+
+        // do the actual computation, once we know how to read and write
+        JavaRDD<Variant> variants = rddAdaptor.getRdd(ctx);
+        new SparkIBSClustering().calculate(variants, ibsPairWriter);
+        ibsPairWriter.close();
+
     }
 }

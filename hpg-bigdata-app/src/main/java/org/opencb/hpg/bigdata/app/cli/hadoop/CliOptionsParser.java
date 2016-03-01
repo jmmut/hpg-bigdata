@@ -425,13 +425,15 @@ public class CliOptionsParser {
         @ParametersDelegate
         public CommonCommandOptions commonOptions = commonCommandOptions;
 
-        @Parameter(names = {"-i", "--input"}, description = "input vcf", required = true, arity = 1)
+        @Parameter(names = {"-f", "--inputType"}, description = "Type of the input {file, hbase} (see \"-i\").", required = false, arity = 1)
+        public String inputType = null;
+        @Parameter(names = {"-i", "--input"}, description = "input vcf (see \"-f\") This can be a file path, or an hbase table name.", required = true, arity = 1)
         public String input = null;
         @Parameter(names = {"-s", "--spark-home"}, description = "path to the spark installation that SparkLauncher will use.", required = true, arity = 1)
         public String sparkHome = null;
         @Parameter(names = {"-j", "--jar"}, description = "AppResource (path to the jar) that SparkLauncher will use.", required = true, arity = 1)
         public String appResource = null;
-        @Parameter(names = {"-t", "--output-type"}, description = "How to write the output (stdout, hbase, file). hbase and file require \"-o\" as well.", required = true, arity = 1)
+        @Parameter(names = {"-t", "--output-type"}, description = "How to write the output {stdout, hbase, file}. hbase and file require \"-o\" as well.", required = true, arity = 1)
         public String outputType = null;
         @Parameter(names = {"-o", "--output"}, description = "Location to write the output (see \"-t\"). This can be a file path, or an hbase table name.", required = false, arity = 1)
         public String output = null;

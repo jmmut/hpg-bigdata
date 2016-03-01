@@ -19,9 +19,7 @@ package org.opencb.hpg.bigdata.tools.variant.spark.adaptors;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.opencb.biodata.models.variant.Variant;
-import org.opencb.biodata.models.variant.VariantSource;
-import org.opencb.biodata.models.variant.VariantVcfFactory;
-import org.opencb.biodata.models.variant.exceptions.NotAVariantException;
+import org.opencb.biodata.tools.variant.converter.Converter;
 
 import java.util.List;
 
@@ -36,17 +34,22 @@ import java.util.List;
 public class VcfVariantRddAdaptor implements VariantRddAdaptor {
 
     private String filename;
+    private Converter<String, List<Variant>> converter;
 
     /**
      * We use the constructor to ask for the VariantRddAdaptor-implementation-specific
      * required parameters.
      * @param filename vcf
+     * @param converter converter from String to list of Variants
      */
-    public VcfVariantRddAdaptor(String filename) {
+    public VcfVariantRddAdaptor(String filename, Converter<String, List<Variant>> converter) {
         this.filename = filename;
+        this.converter = converter;
     }
 
     /**
+     * get the rdd
+     * TODO: move .filter and .map to a FileConnector + StringToVariantConverter.
      * @param ctx to create the RDD
      * @return JavaRDD of variants
      */
@@ -55,24 +58,6 @@ public class VcfVariantRddAdaptor implements VariantRddAdaptor {
 
         JavaRDD<String> file = ctx.textFile(this.filename);
 
-        return file
-                .filter(line -> !line.startsWith("#") && !line.trim().isEmpty())
-                .flatMap(line -> {
-                    VariantSource variantSource = new VariantSource(filename, "5", "7", "studyName");
-                    VariantVcfFactory factory = new VariantVcfFactory();
-                    List<Variant> parsed = null;
-                    try {
-                        parsed = factory.create(variantSource, line);
-                    } catch (IllegalArgumentException e) {
-                        System.out.println(line);
-                        e.printStackTrace();
-                        throw e;
-                    } catch (NotAVariantException e) {
-                        e.printStackTrace();
-                        throw e;
-                    }
-
-                    return parsed;
-                });
+        return file.flatMap(line -> converter.convert(line));
     }
 }

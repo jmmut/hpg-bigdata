@@ -121,6 +121,7 @@ public class VariantCommandExecutor extends CommandExecutor {
 
     private void ibs() throws Exception {
         String input = variantCommandOptions.ibsVariantCommandOptions.input;
+        String inputType = variantCommandOptions.ibsVariantCommandOptions.inputType;
         String sparkHome = variantCommandOptions.ibsVariantCommandOptions.sparkHome;
         String appResource = variantCommandOptions.ibsVariantCommandOptions.appResource;
         String outputType = variantCommandOptions.ibsVariantCommandOptions.outputType;
@@ -138,9 +139,9 @@ public class VariantCommandExecutor extends CommandExecutor {
                 .setVerbose(false);
 
         if (output == null) {
-            sparkLauncher.addAppArgs(input, outputType);
+            sparkLauncher.addAppArgs(inputType, input, outputType);
         } else {
-            sparkLauncher.addAppArgs(input, outputType, output);
+            sparkLauncher.addAppArgs(inputType, input, outputType, output);
         }
 
         Process sparkIBSClustering = sparkLauncher.launch();
